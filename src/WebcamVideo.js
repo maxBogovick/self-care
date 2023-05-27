@@ -2,19 +2,13 @@ import React from "react";
 import Webcam from "react-webcam";
 
 export default function WebcamVideo() {
+  const FACING_MODE_USER = "user";
+  const FACING_MODE_ENVIRONMENT = "environment";
   const webcamRef = React.useRef(null);
   const mediaRecorderRef = React.useRef(null);
   const [capturing, setCapturing] = React.useState(false);
   const [audioEnable, setAudioEnable] = React.useState(true);
   const [recordedChunks, setRecordedChunks] = React.useState([]);
-  const [deviceId, setDeviceId] = React.useState({});
-  const [devices, setDevices] = React.useState([]);
-
-  const handleDevices = React.useCallback(
-    mediaDevices =>
-      setDevices(mediaDevices.filter(({ kind }) => kind === "videoinput")),
-    [setDevices]
-  );
 
   const handleDataAvailable = React.useCallback(
     ({ data }) => {
@@ -62,8 +56,7 @@ export default function WebcamVideo() {
   const videoConstraints = {
     width: 420,
     height: 420,
-    facingMode: "user",
-    deviceId: deviceId
+    facingMode: FACING_MODE_USER
   };
 
   const handleAudioChange = () => {
@@ -71,12 +64,16 @@ export default function WebcamVideo() {
     webcamRef.current.audio = audioEnable;
   };
 
-  React.useEffect(
-    () => {
-      navigator.mediaDevices.enumerateDevices().then(handleDevices);
-    },
-    [handleDevices]
-  );
+  const [facingMode, setFacingMode] = React.useState(FACING_MODE_USER);
+
+  const changeCameraHandler = React.useCallback(() => {
+    setFacingMode(
+      prevState =>
+        prevState === FACING_MODE_USER
+          ? FACING_MODE_ENVIRONMENT
+          : FACING_MODE_USER
+    );
+  }, []);
 
   return (
     <div className="Container">
@@ -86,15 +83,16 @@ export default function WebcamVideo() {
         audio={audioEnable}
         mirrored={true}
         ref={webcamRef}
-        videoConstraints={videoConstraints}
+        videoConstraints={{
+          ...videoConstraints,
+          facingMode
+        }}
       />
       <input type="checkbox" checked={audioEnable} onChange={handleAudioChange} />
-      {devices.map((device, key) => (
-          <div>
-            <button onClick={e => setDeviceId(device.deviceId)} > {device.label || `Device ${key + 1}`}</button>
-          </div>
 
-        ))}
+      <div>
+        <button onClick={changeCameraHandler} >Переключить камеру</button>
+      </div>
       {capturing ? (
         <button onClick={handleStopCaptureClick}>Stop Capture</button>
       ) : (

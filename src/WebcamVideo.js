@@ -5,7 +5,16 @@ export default function WebcamVideo() {
   const webcamRef = React.useRef(null);
   const mediaRecorderRef = React.useRef(null);
   const [capturing, setCapturing] = React.useState(false);
+  const [audioEnable, setAudioEnable] = React.useState(true);
   const [recordedChunks, setRecordedChunks] = React.useState([]);
+  const [deviceId, setDeviceId] = React.useState({});
+  const [devices, setDevices] = React.useState([]);
+
+  const handleDevices = React.useCallback(
+    mediaDevices =>
+      setDevices(mediaDevices.filter(({ kind }) => kind === "videoinput")),
+    [setDevices]
+  );
 
   const handleDataAvailable = React.useCallback(
     ({ data }) => {
@@ -54,18 +63,38 @@ export default function WebcamVideo() {
     width: 420,
     height: 420,
     facingMode: "user",
+    deviceId: deviceId
   };
+
+  const handleAudioChange = () => {
+    setAudioEnable(!audioEnable);
+    webcamRef.current.audio = audioEnable;
+  };
+
+  React.useEffect(
+    () => {
+      navigator.mediaDevices.enumerateDevices().then(handleDevices);
+    },
+    [handleDevices]
+  );
 
   return (
     <div className="Container">
       <Webcam
         height={400}
         width={400}
-        audio={false}
+        audio={audioEnable}
         mirrored={true}
         ref={webcamRef}
         videoConstraints={videoConstraints}
       />
+      <input type="checkbox" checked={audioEnable} onChange={handleAudioChange} />
+      {devices.map((device, key) => (
+          <div>
+            <button onClick={e => setDeviceId(device.deviceId)} > {device.label || `Device ${key + 1}`}</button>
+          </div>
+
+        ))}
       {capturing ? (
         <button onClick={handleStopCaptureClick}>Stop Capture</button>
       ) : (
